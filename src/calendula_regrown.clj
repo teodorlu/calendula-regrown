@@ -130,7 +130,10 @@
 
 ;; ── machinery ─────────────────────────────────────────────────────────────
 
+(defonce !last-req (atom nil))
+
 (defn req->state [req]
+  (reset! !last-req req)
   (merge {:world/today (now)}
          (when-let [user (get-in req [:session :user])]
            {:session/login
@@ -139,6 +142,12 @@
                               :email :user/email
                               :name :user/name
                               :username :user/username})})))
+
+(comment
+  (keys state)
+  (def state (req->state @!last-req))
+  (index state)
+  )
 
 (def head
   [:head
