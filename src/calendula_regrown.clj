@@ -21,6 +21,27 @@
                    :wednesday [{:start 8 :end 10}
                                {:start 12 :end 14}]})
 
+;; ── datomic ───────────────────────────────────────────────────────────────
+
+(def datomic-client
+  (d/client {:server-type :datomic-local
+             :storage-dir (do (assert (System/getenv "GARDEN_STORAGE"))
+                              (str (System/getenv "GARDEN_STORAGE") "/datomic"))
+             :system "garden"}))
+
+(def schema
+  [{:db/ident :user/uuid
+    :db/valueType :db.type/string
+    :db/cardinality :db.cardinality/one
+    :db/unique :db.unique/identity}
+
+   ])
+#_(swap! !system assoc :system/datomic-conn (connect-datomic))
+
+(defn connect-datomic []
+  (d/create-database datomic-client {:db-name "calendula-regrown"})
+  (doto (d/connect datomic-client {:db-name "calendula-regrown"})
+    (d/transact {:tx-data schema})))
 
 ;; ── date stuff ────────────────────────────────────────────────────────────
 
@@ -151,7 +172,8 @@
 (defn serve! [opts]
   (halt!)
   (swap! !system assoc :system/httpkit-server
-         (httpkit/run-server #'wrapped-app (assoc opts :legacy-return-value? false))))
+         (httpkit/run-server #'wrapped-app (assoc opts :legacy-return-value? false)))
+  (swap! !system assoc :system/datomic-conn (connect-datomic)))
 
 (comment
   !system

@@ -8,6 +8,8 @@
         com.aayushatharva.brotli4j/native-linux-x86_64 {:mvn/version "1.20.0"}
 
         io.github.nextjournal/garden-id {:git/sha "7d19e5400b9ac9082e444f2c0e96d9b5e616a483"}
-        io.github.nextjournal/garden-email {:git/sha "e312764cfaa31e8e47f5f2c0207dcbed67873187"}}
+        io.github.nextjournal/garden-email {:git/sha "e312764cfaa31e8e47f5f2c0207dcbed67873187"}
+
+        com.datomic/local {:mvn/version "1.0.301"}}
 
  :aliases {:nextjournal/garden {:exec-fn calendula-regrown/serve!}}}

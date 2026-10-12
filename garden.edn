@@ -1,1 +1,2 @@
-{:project "calendula-regrown"}
+{:project "calendula-regrown"
+ :deploy-strategy :restart}
