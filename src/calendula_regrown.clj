@@ -15,7 +15,7 @@
 
 (defn index [state]
   ;; (prn state)
-  (let [uname (get-in state [:system/user :user/username])]
+  (let [uname (get-in state [:session/login :user/username])]
     (list [:strong "guten morgen."]
           [:p (if uname
                 [:span (str uname " ") [:a {:href garden-id/logout-uri} "(logout)"]]
@@ -29,7 +29,7 @@
 (defn req->state [req]
   (merge {}
          (when-let [user (get-in req [:session :user])]
-           {:system/user
+           {:session/login
             (set/rename-keys user
                              {:uuid :user/uuid
                               :email :user/email
