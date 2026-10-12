@@ -110,7 +110,8 @@
                      (not (before? date (:world/today state))))]
       (render-day state date))]
    [:div {:role "group" :style "margin-top: 1em"}
-    [:button.outline (if (before? start-of-week (:world/today state))
+    [:button.outline (if (or (before? start-of-week (:world/today state))
+                             (= start-of-week (:world/today state)))
                        {:disabled true}
                        {})
      "← prev week"]
