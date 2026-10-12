@@ -12,9 +12,9 @@
            (java.time.temporal TemporalAdjusters)))
 
 (defonce !system
-  (atom {:system/httpkit-server nil
-         :system/datomic-conn nil
-         :system/datastar-conns {}}))
+  (atom {:httpkit/server nil
+         :datomic/conn nil
+         :datastar/connections {}}))
 
 (def availability {:monday [{:start 9 :end 10}
                             {:start 12 :end 15}]
@@ -36,7 +36,7 @@
     :db/unique :db.unique/identity}
 
    ])
-#_(swap! !system assoc :system/datomic-conn (connect-datomic))
+#_(swap! !system assoc :datomic/conn (connect-datomic))
 
 (defn connect-datomic []
   (d/create-database datomic-client {:db-name "calendula-regrown"})
@@ -167,14 +167,10 @@
 ;; ── lifecycle ─────────────────────────────────────────────────────────────
 
 (defn halt! []
-  (swap! !system update :system/httpkit-server #(when % (httpkit/server-stop! %))))
+  (swap! !system update :httpkit/server #(when % (httpkit/server-stop! %))))
 
 (defn serve! [opts]
   (halt!)
-  (swap! !system assoc :system/httpkit-server
+  (swap! !system assoc :httpkit/server
          (httpkit/run-server #'wrapped-app (assoc opts :legacy-return-value? false)))
-  (swap! !system assoc :system/datomic-conn (connect-datomic)))
-
-(comment
-  !system
-  )
+  (swap! !system assoc :datomic/conn (connect-datomic)))
