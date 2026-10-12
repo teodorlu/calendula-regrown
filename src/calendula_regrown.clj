@@ -84,7 +84,7 @@
 
 ;; ── app ───────────────────────────────────────────────────────────────────
 
-(defn render-day [req day]
+(defn render-day [state day]
   [:div {:id (str "date-" day)}
    [:strong (str (name (date->keyword day)))]
    [:span " (" day ")"]
@@ -102,20 +102,19 @@
                :checked (= status :mine)}]
       (str hour ":00")])])
 
-(defn render-week [req start-of-week]
-  (let [today (now)]
-    [:div#week
-     [:div.grid
-      (for [date (dates-of-week start-of-week)
-            :when (and (availability (date->keyword date))
-                       (not (before? date today)))]
-        (render-day req date))]
-     [:div {:role "group" :style "margin-top: 1em"}
-      [:button.outline (if (before? start-of-week today)
-                         {:disabled true}
-                         {})
-       "← prev week"]
-      [:button.outline {} "next week →"]]]))
+(defn render-week [state start-of-week]
+  [:div#week
+   [:div.grid
+    (for [date (dates-of-week start-of-week)
+          :when (and (availability (date->keyword date))
+                     (not (before? date (:world/today state))))]
+      (render-day state date))]
+   [:div {:role "group" :style "margin-top: 1em"}
+    [:button.outline (if (before? start-of-week (:world/today state))
+                       {:disabled true}
+                       {})
+     "← prev week"]
+    [:button.outline {} "next week →"]]])
 
 (defn index [{:as state :keys [req]}]
   (prn (dissoc state :req))
@@ -125,7 +124,7 @@
                 [:span (str uname " ") [:a {:href garden-id/logout-uri} "(logout)"]]
                 [:a {:href garden-id/login-uri} "login"])]
           (when uname
-            (render-week req (start-of-week (now)))))))
+            (render-week state (start-of-week (:world/today state)))))))
 
 (def routes
   {[:get "/"] #'index})
@@ -133,7 +132,8 @@
 ;; ── machinery ─────────────────────────────────────────────────────────────
 
 (defn req->state [req]
-  (merge {:req req}
+  (merge {:req req
+          :world/today (now)}
          (when-let [user (get-in req [:session :user])]
            {:session/login
             (set/rename-keys user
