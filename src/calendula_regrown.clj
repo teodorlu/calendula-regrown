@@ -116,8 +116,7 @@
      "← prev week"]
     [:button.outline {} "next week →"]]])
 
-(defn index [{:as state :keys [req]}]
-  (prn (dissoc state :req))
+(defn index [state]
   (let [uname (get-in state [:session/login :user/username])]
     (list [:strong "guten morgen."]
           [:p (if uname
@@ -132,8 +131,7 @@
 ;; ── machinery ─────────────────────────────────────────────────────────────
 
 (defn req->state [req]
-  (merge {:req req
-          :world/today (now)}
+  (merge {:world/today (now)}
          (when-let [user (get-in req [:session :user])]
            {:session/login
             (set/rename-keys user
