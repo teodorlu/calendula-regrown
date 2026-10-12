@@ -1,25 +1,110 @@
 (ns calendula-regrown
   (:require
+   [clojure.string :as str]
    [org.httpkit.server :as httpkit]
    [hiccup.page]
    [nextjournal.garden-id :as garden-id]
    [ring.middleware.session]
-   [clojure.set :as set]))
+   [ring.util.codec]
+   [clojure.set :as set]
+   [datomic.client.api :as d])
+  (:import (java.time LocalDate DayOfWeek)
+           (java.time.temporal TemporalAdjusters)))
 
 (defonce !system
   (atom {:system/httpkit-server nil
          :system/datomic-conn nil
          :system/datastar-conns {}}))
 
+(def availability {:monday [{:start 9 :end 10}
+                            {:start 12 :end 15}]
+                   :wednesday [{:start 8 :end 10}
+                               {:start 12 :end 14}]})
+
+
+;; ── date stuff ────────────────────────────────────────────────────────────
+
+(comment
+  (set! *warn-on-reflection* true))
+
+(defn now [] (str (LocalDate/now)))
+
+(defn before? [a b]
+  (.isBefore (LocalDate/parse a) (LocalDate/parse b)))
+
+(defn start-of-week [date]
+  (str (LocalDate/.with (LocalDate/.plusDays (LocalDate/parse date) 1)
+                        (TemporalAdjusters/previous DayOfWeek/MONDAY))))
+
+(defn offset-week [date offset]
+  (str (LocalDate/.plusWeeks (LocalDate/parse date) offset)))
+
+(defn dates-of-week [start-date]
+  (map (fn [offset] (str (LocalDate/.plusDays (LocalDate/parse start-date) offset))) (range 7)))
+
+(defn date->keyword [day]
+  (keyword (str/lower-case (str (LocalDate/.getDayOfWeek (LocalDate/parse day))))))
+
+(defn free? [availability day hour]
+  (and (some (fn [{:keys [start end]}] (<= start hour end)) (availability (date->keyword day)))
+                                        ;(not (get-in @impulse/state [:appointments day hour]))
+       ))
+
+(comment
+  (before? "2024-09-16" "2024-09-17") ;=> true
+  (before? "2024-09-17" "2024-09-16") ;=> false
+  (dates-of-week (start-of-week (now)))
+  (start-of-week (now))
+  (offset-week (start-of-week (now)) 1)
+  (dates-of-week (offset-week (start-of-week (now)) 1))
+  (date->keyword "2024-01-01") ;=> :monday
+  (free? {:monday [{:start 12 :end 15}]} "2024-01-01" 15)
+  ,)
+
 ;; ── app ───────────────────────────────────────────────────────────────────
 
-(defn index [state]
-  ;; (prn state)
+(defn render-day [req day]
+  [:div {:id (str "date-" day)}
+   [:strong (str (name (date->keyword day)))]
+   [:span " (" day ")"]
+   (for [hour (mapcat #(range (:start %) (:end %)) (availability (date->keyword day)))
+         :let [status (cond (free? availability day hour) :free
+                                        ; (= (get-in @impulse/state [:appointments day hour]) (email req)) :mine
+                            :else nil)]
+         :when status]     ; either free or booked by the current user
+     [:div {:hx-post (str (if (= status :free)
+                            "/book-appointment?"
+                            "/unbook-appointment?")
+                          (ring.util.codec/form-encode {:day day :hour hour}))
+            :hx-target (str "#date-" day)}
+      [:input {:type "checkbox"
+               :checked (= status :mine)}]
+      (str hour ":00")])])
+
+(defn render-week [req start-of-week]
+  (let [today (now)]
+    [:div#week
+     [:div.grid
+      (for [date (dates-of-week start-of-week)
+            :when (and (availability (date->keyword date))
+                       (not (before? date today)))]
+        (render-day req date))]
+     [:div {:role "group" :style "margin-top: 1em"}
+      [:button.outline (if (before? start-of-week today)
+                         {:disabled true}
+                         {})
+       "← prev week"]
+      [:button.outline {} "next week →"]]]))
+
+(defn index [{:as state :keys [req]}]
+  (prn (dissoc state :req))
   (let [uname (get-in state [:session/login :user/username])]
     (list [:strong "guten morgen."]
           [:p (if uname
                 [:span (str uname " ") [:a {:href garden-id/logout-uri} "(logout)"]]
-                [:a {:href garden-id/login-uri} "login"])])))
+                [:a {:href garden-id/login-uri} "login"])]
+          (when uname
+            (render-week req (start-of-week (now)))))))
 
 (def routes
   {[:get "/"] #'index})
@@ -27,7 +112,7 @@
 ;; ── machinery ─────────────────────────────────────────────────────────────
 
 (defn req->state [req]
-  (merge {}
+  (merge {:req req}
          (when-let [user (get-in req [:session :user])]
            {:session/login
             (set/rename-keys user
@@ -53,7 +138,7 @@
                               ((get routes [request-method uri])
                                (req->state req)))}))
 
-(def wrapped-app
+(defonce wrapped-app ; defonce prevents eval-bffer from logging out everyone
   (-> #'app
       garden-id/wrap-auth
       ring.middleware.session/wrap-session))
