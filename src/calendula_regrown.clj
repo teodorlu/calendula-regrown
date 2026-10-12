@@ -78,7 +78,7 @@
     :db/cardinality :db.cardinality/one
     :db/unique :db.unique/identity}
 
-   {:db/ident :view/week
+   {:db/ident :user.view/week
     :db/valueType :db.type/string
     :db/cardinality :db.cardinality/one}
 
@@ -157,7 +157,7 @@
   (ffirst
    (d/q '[:find ?w
           :where
-          [?u :view/week ?w]
+          [?u :user.view/week ?w]
           [?u :user/uuid ?uuid]
           :in $ ?uuid]
         (:datomic/db state)
@@ -168,7 +168,7 @@
         current (or (find-view-week state user)
                     (start-of-week (:world/today state)))]
     [[:datomic/transact [{:user/uuid (:user/uuid user)
-                          :view/week (offset-week current offset)}]]]))
+                          :user.view/week (offset-week current offset)}]]]))
 
 (comment
   (def state (create-state @!last-req))
