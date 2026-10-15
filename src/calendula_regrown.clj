@@ -78,7 +78,7 @@
     :db/cardinality :db.cardinality/one
     :db/unique :db.unique/identity}
 
-   {:db/ident :user.view/week
+   {:db/ident :user.view/weqek
     :db/valueType :db.type/string
     :db/cardinality :db.cardinality/one}
 
@@ -120,7 +120,7 @@
     [:button.outline (if (or (before? start-of-week (:world/today state))
                              (= start-of-week (:world/today state)))
                        {:disabled true}
-                       {})
+                       {:data-on:click "@post('/prev-week')"})
      "← prev week"]
     [:button.outline {:data-on:click "@post('/next-week')"} "next week →"]]])
 
