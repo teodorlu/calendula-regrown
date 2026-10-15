@@ -2,7 +2,7 @@
   (:require
    [clojure.string :as str]
    [org.httpkit.server :as httpkit]
-   [hiccup.page]
+   [hiccup2.core :as h]
    [nextjournal.garden-id :as garden-id]
    [ring.middleware.session]
    [ring.util.codec]
@@ -137,20 +137,55 @@
 (defn index [state]
   (let [user (:session/login state)
         username (:user/username user)]
-    (list [:strong "guten morgen."]
-          [:p (if username
-                [:span (str username " ") [:a {:href garden-id/logout-uri} "(logout)"]]
-                [:a {:href garden-id/login-uri} "login"])]
-          (when username
-            (render-week state (or (find-current-week state user)
-                                   (start-of-week (:world/today state))))))))
+    [:main#app
+     [:strong "guten morgen."]
+     [:p (if username
+           [:span (str username " ") [:a {:href garden-id/logout-uri} "(logout)"]]
+           [:a {:href garden-id/login-uri} "login"])]
+     (when username
+       (render-week state (or (find-current-week state user)
+                              (start-of-week (:world/today state)))))]))
 
 (def routes
   {[:get "/"] #'index})
 
 ;; ── fat morph ─────────────────────────────────────────────────────────────
 
-(defn re-render! [])
+(declare req->state)
+
+(defmethod print-method org.httpkit.server.AsyncChannel [ch ^java.io.Writer w]
+  (.write w "#httpkit/channel ")
+  (print-method (str ch) w))
+
+(defn sse-patch-elements [html]
+  (str "event: datastar-patch-elements\n"
+       (apply str (map #(str "data: elements " % "\n") (str/split-lines html)))
+       "\n"))
+
+(defn re-render! []
+  (doseq [[ch conn-state] (:datastar/connections @!system)]
+    (httpkit/send! ch
+                   (sse-patch-elements (str (h/html {:mode :html} (index (merge (system->state @!system) conn-state)))))
+                   false)))
+
+(defn stream [req]
+  (httpkit/as-channel
+   req
+   {:on-open
+    (fn [ch]
+      (httpkit/send! ch {:status 200
+                         :headers {"content-type" "text/event-stream"
+                                   "cache-control" "no-cache"}}
+                     false)
+      (swap! !system assoc-in [:datastar/connections ch] (req->state req)))
+
+    :on-close
+    (fn [ch _status]
+      (swap! !system update :datastar/connections dissoc ch))}))
+
+(comment
+  (:datastar/connections @!system)
+  )
 
 ;; ── commands ──────────────────────────────────────────────────────────────
 ;;
@@ -192,12 +227,14 @@
       (throw (ex-info "Unsupported effect kind" {:kind kind})))))
 
 (defn dispatch-command! [state req command-handler]
-  (httpkit/as-channel req
-                      {:on-open (fn [ch]
-                                  (httpkit/send! ch {:status 202})
-                                  (->> (command-handler state (:params req))
-                                       effectuate!)
-                                  (re-render!))}))
+  (httpkit/as-channel
+   req
+   {:on-open
+    (fn [ch]
+      (httpkit/send! ch {:status 202})
+      (->> (command-handler state (:params req))
+           effectuate!)
+      (re-render!))}))
 
 ;; ── machinery ─────────────────────────────────────────────────────────────
 
@@ -234,19 +271,27 @@
     (= :head request-method)
     {:status 202}
 
+    (and (= :get request-method) (= "/stream" uri))
+    (stream req)
+
     (and (= :get request-method)
          (contains? routes [request-method uri]))
     {:status 200
      :headers {"content-type" "text/html"}
-     :body (hiccup.page/html5 head
-                              ((get routes [request-method uri])
-                               (create-state req)))}
+     :body (str (h/html {:mode :html}
+                        (h/raw "<!DOCTYPE html>\n")
+                        [:html
+                         head
+                         [:body {:data-init "@get('/stream')"}
+                          ((get routes [request-method uri])
+                           (create-state req))]]))}
 
     (and (= :post request-method)
          (contains? commands-by-uri uri))
-    (dispatch-command! (create-state req)
-                       req
-                       (commands-by-uri uri))))
+    (do (dispatch-command! (create-state req)
+                           req
+                           (commands-by-uri uri))
+        (re-render!))))
 
 (defonce wrapped-app ; defonce prevents eval-bffer from logging out everyone
   (-> #'app
