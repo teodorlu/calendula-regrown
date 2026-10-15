@@ -235,8 +235,7 @@
     (fn [ch]
       (httpkit/send! ch {:status 202})
       (->> (command-handler state (:params req))
-           effectuate!)
-      (re-render!))}))
+           effectuate!))}))
 
 ;; ── machinery ─────────────────────────────────────────────────────────────
 
