@@ -144,7 +144,9 @@
            [:a {:href garden-id/login-uri} "login"])]
      (when username
        (render-week state (or (find-current-week state user)
-                              (start-of-week (:world/today state)))))]))
+                              (start-of-week (:world/today state)))))
+     [:p "Source: " [:a {:href "https://github.com/teodorlu/calendula-regrown"}
+                     "github.com/teodorlu/garden-regrown"]]]))
 
 (def routes
   {[:get "/"] #'index})
