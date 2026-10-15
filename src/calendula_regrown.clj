@@ -78,7 +78,7 @@
     :db/cardinality :db.cardinality/one
     :db/unique :db.unique/identity}
 
-   {:db/ident :user.view/weqek
+   {:db/ident :user.view/week
     :db/valueType :db.type/string
     :db/cardinality :db.cardinality/one}
 
