@@ -124,14 +124,26 @@
      "← prev week"]
     [:button.outline {:data-on:click "@post('/next-week')"} "next week →"]]])
 
+(defn find-current-week [state user]
+  (ffirst
+   (d/q '[:find ?w
+          :where
+          [?u :user.view/week ?w]
+          [?u :user/uuid ?uuid]
+          :in $ ?uuid]
+        (:datomic/db state)
+        (:user/uuid user))))
+
 (defn index [state]
-  (let [uname (get-in state [:session/login :user/username])]
+  (let [user (:session/login state)
+        username (:user/username user)]
     (list [:strong "guten morgen."]
-          [:p (if uname
-                [:span (str uname " ") [:a {:href garden-id/logout-uri} "(logout)"]]
+          [:p (if username
+                [:span (str username " ") [:a {:href garden-id/logout-uri} "(logout)"]]
                 [:a {:href garden-id/login-uri} "login"])]
-          (when uname
-            (render-week state (start-of-week (:world/today state)))))))
+          (when username
+            (render-week state (or (find-current-week state user)
+                                   (start-of-week (:world/today state))))))))
 
 (def routes
   {[:get "/"] #'index})
@@ -153,19 +165,9 @@
       ring.util.codec/form-decode)
   ,)
 
-(defn find-view-week [state user]
-  (ffirst
-   (d/q '[:find ?w
-          :where
-          [?u :user.view/week ?w]
-          [?u :user/uuid ?uuid]
-          :in $ ?uuid]
-        (:datomic/db state)
-        (:user/uuid user))))
-
 (defn update-week [offset state _params]
   (let [user (:session/login state)
-        current (or (find-view-week state user)
+        current (or (find-current-week state user)
                     (start-of-week (:world/today state)))]
     [[:datomic/transact [{:user/uuid (:user/uuid user)
                           :user.view/week (offset-week current offset)}]]]))
@@ -173,7 +175,7 @@
 (comment
   (def state (create-state @!last-req))
 
-  (find-view-week state (:session/login state))
+  (find-current-week state (:session/login state))
 
   )
 
