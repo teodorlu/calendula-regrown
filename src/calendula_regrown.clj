@@ -1,15 +1,17 @@
 (ns calendula-regrown
   (:require
+   [clojure.set :as set]
    [clojure.string :as str]
-   [org.httpkit.server :as httpkit]
+   [datomic.client.api :as d]
    [hiccup2.core :as h]
    [nextjournal.garden-id :as garden-id]
+   [org.httpkit.server :as httpkit]
    [ring.middleware.session]
    [ring.util.codec]
-   [clojure.set :as set]
-   [datomic.client.api :as d])
-  (:import (java.time LocalDate DayOfWeek)
-           (java.time.temporal TemporalAdjusters)))
+   [torque])
+  (:import
+   (java.time DayOfWeek LocalDate)
+   (java.time.temporal TemporalAdjusters)))
 
 (def availability {:monday [{:start 9 :end 10}
                             {:start 12 :end 15}]
@@ -170,20 +172,25 @@
 
 (defn re-render! []
   (doseq [[ch conn-state] (:datastar/connections @!system)]
-    (httpkit/send! ch
-                   (sse-patch-elements (str (h/html {:mode :html} (index (merge (system->state @!system) conn-state)))))
-                   false)))
+    (let [state (merge (system->state @!system) conn-state)
+          encode (:connection/encoder conn-state)]
+      (httpkit/send! ch
+                     (encode (sse-patch-elements (str (h/html {:mode :html} (index state)))))
+                     false))))
 
 (defn stream [req]
   (httpkit/as-channel
    req
    {:on-open
     (fn [ch]
-      (httpkit/send! ch {:status 200
-                         :headers {"content-type" "text/event-stream"
-                                   "cache-control" "no-cache"}}
-                     false)
-      (swap! !system assoc-in [:datastar/connections ch] (req->state req)))
+      (let [encoder+headers (torque/pick-encoder req)]
+        (httpkit/send! ch {:status 200
+                           :headers (into {"content-type" "text/event-stream"
+                                           "cache-control" "no-cache"}
+                                          (:headers encoder+headers))}
+                       false)
+        (swap! !system assoc-in [:datastar/connections ch] (req->state req))
+        (swap! !system assoc-in [:datastar/connections ch :connection/encoder] (:encode encoder+headers))))
 
     :on-close
     (fn [ch _status]
