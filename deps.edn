@@ -10,12 +10,7 @@
         io.github.nextjournal/garden-id {:git/sha "7d19e5400b9ac9082e444f2c0e96d9b5e616a483"}
         io.github.nextjournal/garden-email {:git/sha "e312764cfaa31e8e47f5f2c0207dcbed67873187"}
 
-        com.datomic/local {:mvn/version "1.0.301"}
-
-        }
+        com.datomic/local {:mvn/version "1.0.301"}}
 
  :aliases
- {:nextjournal/garden {:exec-fn calendula-regrown/serve!}
-  :test {:extra-deps
-         {io.github.tonsky/clj-reload {:mvn/version "1.0.0"}
-          lambdaisland/kaocha {:mvn/version "1.91.1392"}}}}}
+ {:nextjournal/garden {:exec-fn calendula-regrown/serve!}}}
