@@ -1,0 +1,23 @@
+{:deps {io.github.teodorlu/deltatest {:git/sha "e8e37323181ab67d085534ad09b5f5c65ba11ee9"}}
+ :tasks
+ {:init (def deltatest-opts {:jvm-cmd "clojure -Sdeps '{:deps {nrepl/nrepl {:mvn/version \"1.4.0\"}}}' -M:test -m nrepl.cmdline"})
+  :requires ([teodorlu.deltatest :as deltatest])
+
+  ;; ── Key commands ───────────
+  ;; Test your latest commit; where HEAD points
+  deltatest-head (deltatest/test-head deltatest-opts)
+  ;; Test the files as you see them; what Git calls your worktree
+  deltatest-tree (deltatest/test-tree deltatest-opts)
+
+  ;; ── Peripheral commands ────
+  ;; Stop Deltatest's JVM process, eg to load new deps.edn on next test.
+  deltatest-stop (deltatest/stop-jvm deltatest-opts)
+  ;; Forget Deltatest's last known green commit, all tests will run next time.
+  deltatest-forget (deltatest/forget-green deltatest-opts)
+  ;; Stop Deltatest's JVM and remove all leftover worktree files.
+  deltatest-clean (deltatest/clean deltatest-opts)
+  ;; Do a completely clean run of the latest commit. Similar to CI servers, no shortcuts.
+  test-head (doto deltatest-opts
+              deltatest/clean
+              deltatest/forget-green
+              deltatest/test-head)}}
