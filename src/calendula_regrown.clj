@@ -59,13 +59,11 @@
 (defonce !system
   (atom {:httpkit/server nil
          :datomic/conn nil
-         :datastar/connections {}
-         :hello/count 0}))
+         :datastar/connections {}}))
 
 (defn system->state [system]
   (let [conn (:datomic/conn system)]
-    (cond-> {:world/today (now)
-             :hello/count (:hello/count system 0)}
+    (cond-> {:world/today (now)}
       conn (assoc :datomic/db (d/db conn)))))
 
 ;; ── datomic ───────────────────────────────────────────────────────────────
@@ -149,8 +147,6 @@
      (when username
        (render-week state (or (find-current-week state user)
                               (start-of-week (:world/today state)))))
-     [:p [:button {:data-on:click "@post('/hello')"} "hello"]
-      (str " × " (:hello/count state))]
      [:p "Source: " [:a {:href "https://github.com/teodorlu/calendula-regrown"}
                      "github.com/teodorlu/calendula-regrown"]]]))
 
@@ -227,22 +223,15 @@
 
   )
 
-(defn hello [_state _params]
-  [[:hello/increment]])
-
 (def commands-by-uri
   {"/next-week" (partial #'update-week 1)
-   "/prev-week" (partial #'update-week -1)
-   "/hello" #'hello})
+   "/prev-week" (partial #'update-week -1)})
 
 (defn effectuate! [effects]
   (doseq [[kind args] effects]
     (case kind
       :datomic/transact
       (d/transact (:datomic/conn @!system) {:tx-data args})
-
-      :hello/increment
-      (swap! !system update :hello/count (fnil inc 0))
 
       (throw (ex-info "Unsupported effect kind" {:kind kind})))))
 
