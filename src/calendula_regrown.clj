@@ -152,7 +152,7 @@
      [:p [:button {:data-on:click "@post('/hello')"} "hello"]
       (str " × " (:hello/count state))]
      [:p "Source: " [:a {:href "https://github.com/teodorlu/calendula-regrown"}
-                     "github.com/teodorlu/garden-regrown"]]]))
+                     "github.com/teodorlu/calendula-regrown"]]]))
 
 (def routes
   {[:get "/"] #'index})
