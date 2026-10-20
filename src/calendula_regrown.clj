@@ -327,3 +327,10 @@
   (swap! !system assoc :httpkit/server
          (httpkit/run-server #'wrapped-app (assoc opts :legacy-return-value? false)))
   (swap! !system assoc :datomic/conn (connect-datomic)))
+
+;; ── dev ───────────────────────────────────────────────────────────────────
+
+(def dev?
+  (str/starts-with? (System/getenv "GARDEN_URL") "http://localhost"))
+
+(when dev? (re-render!))
