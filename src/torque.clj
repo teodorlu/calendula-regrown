@@ -46,3 +46,27 @@
       {:headers {"Content-Encoding" "gzip"} :encode (gzip-encoder)}
       :else
       {:headers {} :encode (fn [^String s] (.getBytes s "UTF-8"))})))
+
+;; ── draft ─────────────────────────────────────────────────────────────────
+
+(comment
+  ;; Torque needs the system atom.
+  torque/!system
+  :torque.conn/conn
+  :torque.conn/encoder
+  :torque/connections)
+
+(comment
+  ;; How do we want to construct commands?
+
+  (defn create-book-expr [path day hour]
+    (str "@post('" path "?"
+         (ring.util.codec/form-encode {:day day :hour hour})
+         "')"))
+  [:button {:data-on:click (create-book-expr "/book-appointment" day hour)} "bk"]
+  ;; introduces the need to write helpers.
+
+  ;; how about
+  [:button (cmd :on/click :commands/book-appointment {"day" day "hour" hour}) "bk"]
+  ;; ?
+  )
