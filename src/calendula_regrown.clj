@@ -203,11 +203,6 @@
 ;;
 ;; POST /book-appointment?day=2026-10-14&hour=9
 ;; :commands/book-appointment "day" "2026-10-14" "hour" "9"
-(comment
-  (-> {"x" 1 "y" 2}
-      ring.util.codec/form-encode
-      ring.util.codec/form-decode)
-  ,)
 
 (defn update-week [offset state _params]
   (let [user (:session/login state)
@@ -215,13 +210,6 @@
                     (start-of-week (:world/today state)))]
     [[:datomic/transact [{:user/uuid (:user/uuid user)
                           :user.view/week (offset-week current offset)}]]]))
-
-(comment
-  (def state (create-state @!last-req))
-
-  (find-current-week state (:session/login state))
-
-  )
 
 (def commands-by-uri
   {"/next-week" (partial #'update-week 1)
@@ -258,12 +246,6 @@
 (defn create-state [req]
   (merge (system->state @!system)
          (req->state req)))
-
-(comment
-  (keys state)
-  (def state (create-state @!last-req))
-  (index state)
-  )
 
 (def head
   [:head
