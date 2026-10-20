@@ -56,10 +56,29 @@
 
 ;; ── system ────────────────────────────────────────────────────────────────
 
+(defn print-exception [{:exception/keys [origin data message _object]}]
+  (println "Excption at" origin ":" message "," data))
+
 (defonce !system
   (atom {:httpkit/server nil
          :datomic/conn nil
-         :datastar/connections {}}))
+         :datastar/connections {}
+         :exception/report-fn #'print-exception}))
+
+(comment
+  (swap! !system dissoc :exception/reporter)
+  (swap! !system assoc :exception/report-fn #'print-exception)
+  ,)
+
+(defn report-exception!
+  ([origin e] (report-exception! origin e nil))
+  ([origin e extra-data]
+   (when-let [report-fn (:exception/report-fn @!system)]
+     (let [message (ex-message e)
+           data (ex-data e)]
+       (report-fn {:exception/origin origin
+                   :exception/message message
+                   :exception/data (merge extra-data data)})))))
 
 (defn system->state [system]
   (let [conn (:datomic/conn system)]
@@ -76,15 +95,43 @@
 
 (def schema
   [{:db/ident :user/uuid
+    :db/doc "User UUID taken from Garden ID"
     :db/valueType :db.type/string
     :db/cardinality :db.cardinality/one
     :db/unique :db.unique/identity}
 
    {:db/ident :user.view/week
+    :db/doc "Which week the user is currently viewing"
     :db/valueType :db.type/string
     :db/cardinality :db.cardinality/one}
 
-   ])
+   ;; Dates and hours
+   {:db/ident :time/date
+    :db/doc "A date, formatted YYYY-MM-DD"
+    :db/valueType :db.type/string
+    :db/cardinality :db.cardinality/one
+    :db/unique :db.unique/identity}
+
+   {:db/ident :time/hour
+    :db/doc "A hour, measured in time since midnight"
+    :db/valueType :db.type/long
+    :db/cardinality :db.cardinality/one
+    :db/unique :db.unique/identity}
+   ;; discard.
+
+   {:db/ident :appointment/date
+    :db/doc "Date, formatted YYYY-MM-DD"
+    :db/valueType :db.type/string
+    :db/cardinality :db.cardinality/one}
+
+   {:db/ident :appointment/hour
+    :db/doc "A hour, measured in time since midnight"
+    :db/valueType :db.type/long
+    :db/cardinality :db.cardinality/one}
+
+   {:db/ident :appointment/booked-by
+    :db/valueType :db.type/ref
+    :db/cardinality :db.cardinality/one}])
 #_(swap! !system assoc :datomic/conn (connect-datomic))
 
 (defn connect-datomic []
@@ -94,22 +141,41 @@
 
 ;; ── app ───────────────────────────────────────────────────────────────────
 
+(defn create-book-expr [path date hour]
+  (str "@post('" path "?" (ring.util.codec/form-encode {"date" date "hour" hour}) "')"))
+#_(create-book-expr "/book-appointment" "2022-02-02" 10)
+
 (defn render-day [_state day]
   [:div {:id (str "date-" day)}
    [:strong (str (name (date->keyword day)))]
    [:span " (" day ")"]
    (for [hour (mapcat #(range (:start %) (:end %)) (availability (date->keyword day)))
          :let [status (cond (free? availability day hour) :free
-                                        ; (= (get-in @impulse/state [:appointments day hour]) (email req)) :mine
+
+                            #_#_
+                            (= (get-in @impulse/state [:appointments day hour]) (email req))
+                            :mine
+
                             :else nil)]
          :when status]     ; either free or booked by the current user
-     [:div {:hx-post (str (if (= status :free)
-                            "/book-appointment?"
-                            "/unbook-appointment?")
-                          (ring.util.codec/form-encode {:day day :hour hour}))}
+     [:div
       [:input {:type "checkbox"
-               :checked (= status :mine)}]
-      (str hour ":00")])])
+               :checked (= status :mine)
+               :data-on:change
+               (create-book-expr
+                (if (= status :free) "/book-appointment" "/unbook-appointment")
+                day hour)}]
+      (str hour ":00")
+      [:small " (" status " "
+       [:button {:data-on:click (create-book-expr "/book-appointment" day hour)} "bk"]
+       " "
+       [:button {:data-on:click (create-book-expr "/unbook-appointment" day hour)} "ubk"]
+       ")"]])])
+
+(comment
+  (def state (create-state @!last-req))
+
+  )
 
 (defn render-week [state start-of-week]
   [:div#week
@@ -197,12 +263,6 @@
   )
 
 ;; ── commands ──────────────────────────────────────────────────────────────
-;;
-;; POST /next-week
-;; :commands/next-week
-;;
-;; POST /book-appointment?day=2026-10-14&hour=9
-;; :commands/book-appointment "day" "2026-10-14" "hour" "9"
 
 (defn update-week [offset state _params]
   (let [user (:session/login state)
@@ -211,16 +271,41 @@
     [[:datomic/transact [{:user/uuid (:user/uuid user)
                           :user.view/week (offset-week current offset)}]]]))
 
+(defn book-appointment [state {:as params :strs [date hour]}]
+  [[:datomic/transact [{:appointment/booked-by (select-keys (:session/login state) [:user/uuid])
+                        :appointment/date date
+                        :appointment/hour (parse-long hour)}]]])
+
+(defn unbook-appointment [state params]
+  (prn "TODO unbook appointment"))
+
+(comment
+  (def state (create-state @!last-req))
+  (keys state)
+  (d/q '[:find (pull ?a [*])
+         :where [?a :appointment/booked-by]]
+       (:datomic/db state))
+
+  )
+
 (def commands-by-uri
   {"/next-week" (partial #'update-week 1)
-   "/prev-week" (partial #'update-week -1)})
+   "/prev-week" (partial #'update-week -1)
+   "/book-appointment" #'book-appointment
+   "/unbook-appointment" #'unbook-appointment})
+
+(defn transact [system args]
+  (d/transact (:datomic/conn system) {:tx-data args}))
+
+(def effect-handlers {:datomic/transact #'transact})
 
 (defn effectuate! [effects]
   (doseq [[kind args] effects]
-    (case kind
-      :datomic/transact
-      (d/transact (:datomic/conn @!system) {:tx-data args})
-
+    (if-let [handler (get effect-handlers kind)]
+      (try
+        (handler @!system args)
+        (catch Exception e
+          (report-exception! :effectuation e)))
       (throw (ex-info "Unsupported effect kind" {:kind kind})))))
 
 (defn dispatch-command! [state req command-handler]
@@ -229,8 +314,11 @@
    {:on-open
     (fn [ch]
       (httpkit/send! ch {:status 202})
-      (->> (command-handler state (:params req))
-           effectuate!))}))
+      (let [params (some-> req :query-string ring.util.codec/form-decode)]
+        (try (effectuate! (command-handler state params))
+             (catch Exception e
+               (report-exception! :command-dispatch e {:handler command-handler
+                                                       :params params})))))}))
 
 ;; ── machinery ─────────────────────────────────────────────────────────────
 
