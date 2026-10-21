@@ -60,7 +60,12 @@
   (str/starts-with? (System/getenv "GARDEN_URL") "http://localhost"))
 
 (defn print-exception [{:exception/keys [origin data message _object]}]
-  (println "Excption at" origin ":" message "," data))
+  (println (str "Exception at: " origin
+                "\n  message: " message
+                "\n  data:"
+                "\n    " (if (map? data)
+                           (str/join "\n    " (for [[k v] data] (str (pr-str k) " " (pr-str v))))
+                           (pr-str data)))))
 
 (defonce !system
   (atom {:httpkit/server nil
