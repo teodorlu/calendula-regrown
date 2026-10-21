@@ -217,6 +217,13 @@
      (when username
        (render-week state (or (find-current-week state user)
                               (start-of-week (:world/today state)))))
+     (when dev?
+       [:p
+        (str (or (ffirst (d/q '[:find (count ?a)
+                                :where [?a :appointment/booked-by]]
+                              (:datomic/db state)))
+                 0)
+             ) " appointments. "
         [:button {:data-on:click (invoke #'clear-database)} "Clear all"]])
      [:p "Source: " [:a {:href "https://github.com/teodorlu/calendula-regrown"}
                      "github.com/teodorlu/calendula-regrown"]]]))
