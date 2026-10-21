@@ -56,6 +56,9 @@
 
 ;; ── system ────────────────────────────────────────────────────────────────
 
+(def dev?
+  (str/starts-with? (System/getenv "GARDEN_URL") "http://localhost"))
+
 (defn print-exception [{:exception/keys [origin data message _object]}]
   (println "Excption at" origin ":" message "," data))
 
@@ -407,7 +410,6 @@
 
 ;; ── dev ───────────────────────────────────────────────────────────────────
 
-(def dev?
-  (str/starts-with? (System/getenv "GARDEN_URL") "http://localhost"))
 
+;; Refresh connected clients on buffer eval
 (when dev? (re-render!))
