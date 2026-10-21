@@ -127,6 +127,7 @@
     :db/unique :db.unique/identity}
    ;; discard.
 
+   ;; Appointments
    {:db/ident :appointment/date
     :db/doc "Date, formatted YYYY-MM-DD"
     :db/valueType :db.type/string
@@ -139,7 +140,12 @@
 
    {:db/ident :appointment/booked-by
     :db/valueType :db.type/ref
-    :db/cardinality :db.cardinality/one}])
+    :db/cardinality :db.cardinality/one}
+
+   {:db/ident :appointment/id
+    :db/valueType :db.type/string
+    :db/cardinality :db.cardinality/one
+    :db/unique :db.unique/identity}])
 #_(swap! !system assoc :datomic/conn (connect-datomic))
 
 (defn connect-datomic []
@@ -293,7 +299,8 @@
   [state {:as params :strs [date hour]}]
   [[:datomic/transact [{:appointment/booked-by (select-keys (:session/login state) [:user/uuid])
                         :appointment/date date
-                        :appointment/hour (parse-long hour)}]]])
+                        :appointment/hour (parse-long hour)
+                        :appointment/id (str (random-uuid))}]]])
 
 (defn unbook-appointment
   {:command/uri "/unbook-appointment"}
