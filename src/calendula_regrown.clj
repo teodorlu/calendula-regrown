@@ -271,12 +271,18 @@
     [[:datomic/transact [{:user/uuid (:user/uuid user)
                           :user.view/week (offset-week current offset)}]]]))
 
-(defn book-appointment [state {:as params :strs [date hour]}]
+(defn book-appointment
+  {:command/id :commands/book-appointment
+   :command/uri "/book-appointment"}
+  [state {:as params :strs [date hour]}]
   [[:datomic/transact [{:appointment/booked-by (select-keys (:session/login state) [:user/uuid])
                         :appointment/date date
                         :appointment/hour (parse-long hour)}]]])
 
-(defn unbook-appointment [state params]
+(defn unbook-appointment
+  {:command/id :commands/unbook-appointment
+   :command/uri "/unbook-appointment"}
+  [state params]
   (prn "TODO unbook appointment"))
 
 (comment
@@ -288,11 +294,30 @@
 
   )
 
-(def commands-by-uri
-  {"/next-week" (partial #'update-week 1)
-   "/prev-week" (partial #'update-week -1)
-   "/book-appointment" #'book-appointment
-   "/unbook-appointment" #'unbook-appointment})
+(defn next-week
+  {:command/id :commands/next-week
+   :command/uri "/next-week"}
+  [state params]
+  (update-week 1 state params))
+
+(defn prev-week
+  {:command/id :commands/prev-week
+   :command/uri "/prev-week"}
+  [state params]
+  (update-week -1 state params))
+
+(def command-vars
+  #{#'next-week
+    #'prev-week
+    #'book-appointment
+    #'unbook-appointment})
+
+(defn by [index-fn items]
+  (into {} (map (juxt index-fn identity)) items))
+
+(def commands-by-uri (by (comp :command/uri meta) command-vars))
+
+(def commands-by-id (by (comp :command/id meta) command-vars))
 
 (defn transact [system args]
   (d/transact (:datomic/conn system) {:tx-data args}))
