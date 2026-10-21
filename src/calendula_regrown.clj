@@ -160,7 +160,7 @@
    [:strong (str (name (date->keyword day)))]
    [:span " (" day ")"]
    (for [hour (mapcat #(range (:start %) (:end %)) (availability (date->keyword day)))
-         :let [params {"day" day "hour"  hour}
+         :let [params {"date" day "hour"  hour}
                status (cond (free? availability day hour) :free
 
                             #_#_
