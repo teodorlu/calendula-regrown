@@ -221,7 +221,7 @@
   (let [user (:session/login state)
         username (:user/username user)]
     [:main#app
-     [:strong "guten morgen...."]
+     [:strong "guten morgen."]
      [:p (if username
            [:span (str username " ") [:a {:href garden-id/logout-uri} "(logout)"]]
            [:a {:href garden-id/login-uri} "login"])]
@@ -392,6 +392,7 @@
    [:script {:type "module" :src "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"}]])
 
 (defonce !last-req (atom nil))
+(comment @!last-req)
 
 (defn app [{:keys [request-method uri] :as req}]
   (reset! !last-req req)
@@ -407,12 +408,12 @@
     {:status 200
      :headers {"content-type" "text/html"}
      :body (str (h/html {:mode :html}
-                        (h/raw "<!DOCTYPE html>\n")
-                        [:html
-                         head
-                         [:body {:data-init "@get('/stream')"}
-                          ((get routes [request-method uri])
-                           (create-state req))]]))}
+                  (h/raw "<!DOCTYPE html>\n")
+                  [:html
+                   head
+                   [:body {:data-init "@get('/stream')"}
+                    ((get routes [request-method uri])
+                     (create-state req))]]))}
 
     (and (= :post request-method)
          (contains? commands-by-uri uri))
