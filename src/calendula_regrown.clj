@@ -8,7 +8,7 @@
    [org.httpkit.server :as httpkit]
    [ring.middleware.session]
    [ring.util.codec]
-   [torque])
+   [torque :refer [invoke]])
   (:import
    (java.time DayOfWeek LocalDate)
    (java.time.temporal TemporalAdjusters)))
@@ -165,12 +165,12 @@
       [:input {:type "checkbox"
                :checked (= status :mine)
                :data-on:change
-               (torque/invoke (if (= status :free) #'book-appointment #'unbook-appointment) params)}]
+               (invoke (if (= status :free) #'book-appointment #'unbook-appointment) params)}]
       (str hour ":00")
       [:small " (" status " "
-       [:button {:data-on:click (torque/invoke #'book-appointment params)} "bk"]
+       [:button {:data-on:click (invoke #'book-appointment params)} "bk"]
        " "
-       [:button {:data-on:click (torque/invoke #'unbook-appointment params)} "ubk"]
+       [:button {:data-on:click (invoke #'unbook-appointment params)} "ubk"]
        ")"]])])
 
 (comment
@@ -214,6 +214,7 @@
      (when username
        (render-week state (or (find-current-week state user)
                               (start-of-week (:world/today state)))))
+        [:button {:data-on:click (invoke #'clear-database)} "Clear all"]])
      [:p "Source: " [:a {:href "https://github.com/teodorlu/calendula-regrown"}
                      "github.com/teodorlu/calendula-regrown"]]]))
 
