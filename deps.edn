@@ -1,6 +1,8 @@
 {:paths ["src"]
 
- :deps {hiccup/hiccup {:mvn/version "2.0.0-RC3"}
+ :deps {org.clojure/clojure {:mvn/version "1.13.0-alpha9"}
+
+        hiccup/hiccup {:mvn/version "2.0.0-RC3"}
         http-kit/http-kit {:mvn/version "2.9.0-beta3"}
         ring/ring-core {:mvn/version "1.12.1"}
         com.aayushatharva.brotli4j/brotli4j {:mvn/version "1.20.0"}
