@@ -67,6 +67,17 @@
         (when params (str "?" (ring.util.codec/form-encode params)))
         "')")))
 
+(defn commands-by-uri [command-vars]
+  (let [command-map (into {} (map (juxt (comp :command/uri meta) identity)) command-vars)]
+    (when (not= (count command-vars) (count command-map))
+      (throw (ex-info "Invalid commands, overlapping URI"
+                      {:conflicts (->> command-vars
+                                       (group-by (comp :command/uri meta))
+                                       (remove (fn [[k v]]
+                                                 (<= 2 (count v))))
+                                       (into {}))})))
+    command-map))
+
 ;; ── draft ─────────────────────────────────────────────────────────────────
 
 (comment

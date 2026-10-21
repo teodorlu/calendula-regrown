@@ -337,13 +337,12 @@
            (map #(vector :db/retractEntity %)))]]))
 
 (def commands-by-uri
-  (into {}
-        (map (juxt (comp :command/uri meta) identity))
-        #{#'next-week
-          #'prev-week
-          #'book-appointment
-          #'unbook-appointment
-          #'clear-database}))
+  (torque/commands-by-uri
+   #{#'next-week
+     #'prev-week
+     #'book-appointment
+     #'unbook-appointment
+     #'clear-database}))
 
 (defn transact [system args]
   (d/transact (:datomic/conn system) {:tx-data args}))
