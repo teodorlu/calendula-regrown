@@ -61,10 +61,11 @@
 
       {:data-on:click (invoke #'plus {\"delta\" 5})}"
   ([command-var]
-   (str "@post('" (-> command-var meta :command/uri) "')"))
+   (invoke command-var nil))
   ([command-var params]
    (str "@post('" (-> command-var meta :command/uri)
-        "?" (ring.util.codec/form-encode params) "')")))
+        (when params (str "?" (ring.util.codec/form-encode params)))
+        "')")))
 
 ;; ── draft ─────────────────────────────────────────────────────────────────
 
