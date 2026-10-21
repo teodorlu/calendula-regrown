@@ -18,6 +18,36 @@
                    :wednesday [{:start 8 :end 10}
                                {:start 12 :end 14}]})
 
+;; ── date stuff ────────────────────────────────────────────────────────────
+
+(defn now [] (str (LocalDate/now)))
+
+(defn before? [a b]
+  (.isBefore (LocalDate/parse a) (LocalDate/parse b)))
+
+(defn start-of-week [date]
+  (str (LocalDate/.with (LocalDate/.plusDays (LocalDate/parse date) 1)
+                        (TemporalAdjusters/previous DayOfWeek/MONDAY))))
+
+(defn offset-week [date offset]
+  (str (LocalDate/.plusWeeks (LocalDate/parse date) offset)))
+
+(defn dates-of-week [start-date]
+  (map (fn [offset] (str (LocalDate/.plusDays (LocalDate/parse start-date) offset))) (range 7)))
+
+(defn date->keyword [day]
+  (keyword (str/lower-case (str (LocalDate/.getDayOfWeek (LocalDate/parse day))))))
+
+(comment
+  (before? "2024-09-16" "2024-09-17") ;=> true
+  (before? "2024-09-17" "2024-09-16") ;=> false
+  (dates-of-week (start-of-week (now)))
+  (start-of-week (now))
+  (offset-week (start-of-week (now)) 1)
+  (dates-of-week (offset-week (start-of-week (now)) 1))
+  (date->keyword "2024-01-01") ;=> :monday
+  ,)
+
 ;; ── system ────────────────────────────────────────────────────────────────
 
 (def dev?
@@ -123,37 +153,6 @@
          book-appointment unbook-appointment
          clear-database)
 
-;; ── date stuff ────────────────────────────────────────────────────────────
-
-(defn now [] (str (LocalDate/now)))
-
-(defn before? [a b]
-  (.isBefore (LocalDate/parse a) (LocalDate/parse b)))
-
-(defn start-of-week [date]
-  (str (LocalDate/.with (LocalDate/.plusDays (LocalDate/parse date) 1)
-                        (TemporalAdjusters/previous DayOfWeek/MONDAY))))
-
-(defn offset-week [date offset]
-  (str (LocalDate/.plusWeeks (LocalDate/parse date) offset)))
-
-(defn dates-of-week [start-date]
-  (map (fn [offset] (str (LocalDate/.plusDays (LocalDate/parse start-date) offset))) (range 7)))
-
-(defn date->keyword [day]
-  (keyword (str/lower-case (str (LocalDate/.getDayOfWeek (LocalDate/parse day))))))
-
-(comment
-  (before? "2024-09-16" "2024-09-17") ;=> true
-  (before? "2024-09-17" "2024-09-16") ;=> false
-  (dates-of-week (start-of-week (now)))
-  (start-of-week (now))
-  (offset-week (start-of-week (now)) 1)
-  (dates-of-week (offset-week (start-of-week (now)) 1))
-  (date->keyword "2024-01-01") ;=> :monday
-  (free? state {:monday [{:start 12 :end 15}]} "2024-01-01" 15)
-  ,)
-
 ;; ── app & render ──────────────────────────────────────────────────────────
 
 (defn find-appointment [state date hour]
@@ -170,6 +169,7 @@
   (and (some (fn [{:keys [start end]}] (<= start hour end))
              (availability (date->keyword date)))
        (not (find-appointment state date hour))))
+#_(free? state {:monday [{:start 12 :end 15}]} "2024-01-01" 15)
 
 (defn render-day [state day]
   [:div
