@@ -203,9 +203,9 @@
     [:button.outline (if (or (before? start-of-week (:world/today state))
                              (= start-of-week (:world/today state)))
                        {:disabled true}
-                       {:data-on:click "@post('/prev-week')"})
+                       {:data-on:click (invoke #'prev-week)})
      "← prev week"]
-    [:button.outline {:data-on:click "@post('/next-week')"} "next week →"]]])
+    [:button.outline {:data-on:click (invoke #'next-week)} "next week →"]]])
 
 (defn find-current-week [state user]
   (ffirst
