@@ -142,11 +142,11 @@
   (doto (d/connect datomic-client {:db-name "calendula-regrown"})
     (d/transact {:tx-data schema})))
 
-;; ── declare command vars ──────────────────────────────────────────────────
-;; so render fn knows how to invoke commands
+;; ── command declaration for render fns  ───────────────────────────────────
 
 (declare next-week prev-week
-         book-appointment unbook-appointment)
+         book-appointment unbook-appointment
+         clear-database)
 
 ;; ── app ───────────────────────────────────────────────────────────────────
 
@@ -314,13 +314,24 @@
   [state params]
   (update-week -1 state params))
 
+(defn clear-database
+  {:command/uri "/clear-database"}
+  [state _]
+  (when dev?
+    [[:datomic/transact
+      (->> (d/q '[:find (?a ...)
+                  :where [?a :appointment/booked-by]]
+                (:datomic/db state))
+           (map #(vector :db/retractEntity %)))]]))
+
 (def commands-by-uri
   (into {}
         (map (juxt (comp :command/uri meta) identity))
         #{#'next-week
           #'prev-week
           #'book-appointment
-          #'unbook-appointment}))
+          #'unbook-appointment
+          #'clear-database}))
 
 (defn transact [system args]
   (d/transact (:datomic/conn system) {:tx-data args}))
