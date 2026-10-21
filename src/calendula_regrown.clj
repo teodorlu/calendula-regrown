@@ -18,42 +18,6 @@
                    :wednesday [{:start 8 :end 10}
                                {:start 12 :end 14}]})
 
-;; ── date stuff ────────────────────────────────────────────────────────────
-
-(defn now [] (str (LocalDate/now)))
-
-(defn before? [a b]
-  (.isBefore (LocalDate/parse a) (LocalDate/parse b)))
-
-(defn start-of-week [date]
-  (str (LocalDate/.with (LocalDate/.plusDays (LocalDate/parse date) 1)
-                        (TemporalAdjusters/previous DayOfWeek/MONDAY))))
-
-(defn offset-week [date offset]
-  (str (LocalDate/.plusWeeks (LocalDate/parse date) offset)))
-
-(defn dates-of-week [start-date]
-  (map (fn [offset] (str (LocalDate/.plusDays (LocalDate/parse start-date) offset))) (range 7)))
-
-(defn date->keyword [day]
-  (keyword (str/lower-case (str (LocalDate/.getDayOfWeek (LocalDate/parse day))))))
-
-(defn free? [availability day hour]
-  (and (some (fn [{:keys [start end]}] (<= start hour end)) (availability (date->keyword day)))
-                                        ;(not (get-in @impulse/state [:appointments day hour]))
-       ))
-
-(comment
-  (before? "2024-09-16" "2024-09-17") ;=> true
-  (before? "2024-09-17" "2024-09-16") ;=> false
-  (dates-of-week (start-of-week (now)))
-  (start-of-week (now))
-  (offset-week (start-of-week (now)) 1)
-  (dates-of-week (offset-week (start-of-week (now)) 1))
-  (date->keyword "2024-01-01") ;=> :monday
-  (free? {:monday [{:start 12 :end 15}]} "2024-01-01" 15)
-  ,)
-
 ;; ── system ────────────────────────────────────────────────────────────────
 
 (def dev?
@@ -159,18 +123,71 @@
          book-appointment unbook-appointment
          clear-database)
 
-;; ── app ───────────────────────────────────────────────────────────────────
+;; ── date stuff ────────────────────────────────────────────────────────────
 
-(defn render-day [_state day]
-  [:div {:id (str "date-" day)}
+(defn now [] (str (LocalDate/now)))
+
+(defn before? [a b]
+  (.isBefore (LocalDate/parse a) (LocalDate/parse b)))
+
+(defn start-of-week [date]
+  (str (LocalDate/.with (LocalDate/.plusDays (LocalDate/parse date) 1)
+                        (TemporalAdjusters/previous DayOfWeek/MONDAY))))
+
+(defn offset-week [date offset]
+  (str (LocalDate/.plusWeeks (LocalDate/parse date) offset)))
+
+(defn dates-of-week [start-date]
+  (map (fn [offset] (str (LocalDate/.plusDays (LocalDate/parse start-date) offset))) (range 7)))
+
+(defn date->keyword [day]
+  (keyword (str/lower-case (str (LocalDate/.getDayOfWeek (LocalDate/parse day))))))
+
+(comment
+  (before? "2024-09-16" "2024-09-17") ;=> true
+  (before? "2024-09-17" "2024-09-16") ;=> false
+  (dates-of-week (start-of-week (now)))
+  (start-of-week (now))
+  (offset-week (start-of-week (now)) 1)
+  (dates-of-week (offset-week (start-of-week (now)) 1))
+  (date->keyword "2024-01-01") ;=> :monday
+  (free? state {:monday [{:start 12 :end 15}]} "2024-01-01" 15)
+  ,)
+
+;; ── app & render ──────────────────────────────────────────────────────────
+
+(defn find-appointment [state date hour]
+  (ffirst
+   (d/q '[:find (pull ?a [* {:appointment/booked-by [*]}])
+         :in $ ?date ?hour
+         :where
+         [?a :appointment/date ?date]
+         [?a :appointment/hour ?hour]]
+       (:datomic/db state) date hour)))
+#_(find-appointment state "2026-10-21" 8)
+
+(defn free? [state availability date hour]
+  (and (some (fn [{:keys [start end]}] (<= start hour end))
+             (availability (date->keyword date)))
+       (not (find-appointment state date hour))))
+
+(comment
+
+  [(-> state :session/login :user/uuid)
+   (find-appointment state "2026-10-21" 8)]
+
+  )
+
+(defn render-day [state day]
+  [:div
    [:strong (str (name (date->keyword day)))]
    [:span " (" day ")"]
    (for [hour (mapcat #(range (:start %) (:end %)) (availability (date->keyword day)))
          :let [params {"date" day "hour"  hour}
-               status (cond (free? availability day hour) :free
+               status (cond (free? state availability day hour) :free
 
-                            #_#_
-                            (= (get-in @impulse/state [:appointments day hour]) (email req))
+                            (= (-> (find-appointment state day hour) :appointment/booked-by :user/uuid)
+                               (-> state :session/login :user/uuid))
                             :mine
 
                             :else nil)]
