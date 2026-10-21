@@ -171,13 +171,6 @@
              (availability (date->keyword date)))
        (not (find-appointment state date hour))))
 
-(comment
-
-  [(-> state :session/login :user/uuid)
-   (find-appointment state "2026-10-21" 8)]
-
-  )
-
 (defn render-day [state day]
   [:div
    [:strong (str (name (date->keyword day)))]
