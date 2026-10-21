@@ -183,10 +183,10 @@
    [:strong (str (name (date->keyword day)))]
    [:span " (" day ")"]
    (for [hour (mapcat #(range (:start %) (:end %)) (availability (date->keyword day)))
-         :let [params {"date" day "hour"  hour}
+         :let [appointment (find-appointment state day hour)
                status (cond (free? state availability day hour) :free
 
-                            (= (-> (find-appointment state day hour) :appointment/booked-by :user/uuid)
+                            (= (-> appointment :appointment/booked-by :user/uuid)
                                (-> state :session/login :user/uuid))
                             :mine
 
@@ -196,12 +196,14 @@
       [:input {:type "checkbox"
                :checked (= status :mine)
                :data-on:change
-               (invoke (if (= status :free) #'book-appointment #'unbook-appointment) params)}]
+               (if (= status :free)
+                 (invoke #'book-appointment {"date" day "hour"  hour})
+                 (invoke #'unbook-appointment))}]
       (str hour ":00")
       [:small " (" status " "
-       [:button {:data-on:click (invoke #'book-appointment params)} "bk"]
+       [:button {:data-on:click (invoke #'book-appointment {"date" day "hour"  hour})} "bk"]
        " "
-       [:button {:data-on:click (invoke #'unbook-appointment params)} "ubk"]
+       [:button {:data-on:click (invoke #'unbook-appointment {"appointment" (:appointment/id appointment)})} "ubk"]
        ")"]])])
 
 (comment
@@ -313,7 +315,7 @@
 
 (defn book-appointment
   {:command/uri "/book-appointment"}
-  [state {:as params :strs [date hour]}]
+  [state {:strs [date hour]}]
   [[:datomic/transact [{:appointment/booked-by (select-keys (:session/login state) [:user/uuid])
                         :appointment/date date
                         :appointment/hour (parse-long hour)
@@ -321,8 +323,9 @@
 
 (defn unbook-appointment
   {:command/uri "/unbook-appointment"}
-  [state params]
-  (prn "TODO unbook appointment"))
+  [_ {:strs [appointment]}]
+  ;; XXX verify that you're unbooking your own appointment
+  [[:datomic/transact [[:db/retractEntity [:appointment/id appointment]]]]])
 
 (comment
   (def state (create-state @!last-req))
