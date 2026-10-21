@@ -198,13 +198,8 @@
                :data-on:change
                (if (= status :free)
                  (invoke #'book-appointment {"date" day "hour"  hour})
-                 (invoke #'unbook-appointment))}]
-      (str hour ":00")
-      [:small " (" status " "
-       [:button {:data-on:click (invoke #'book-appointment {"date" day "hour"  hour})} "bk"]
-       " "
-       [:button {:data-on:click (invoke #'unbook-appointment {"appointment" (:appointment/id appointment)})} "ubk"]
-       ")"]])])
+                 (invoke #'unbook-appointment {"appointment" (:appointment/id appointment)}))}]
+      (str hour ":00")])])
 
 (comment
   (def state (create-state @!last-req))
