@@ -139,18 +139,21 @@
   (doto (d/connect datomic-client {:db-name "calendula-regrown"})
     (d/transact {:tx-data schema})))
 
-;; ── app ───────────────────────────────────────────────────────────────────
+;; ── declare command vars ──────────────────────────────────────────────────
+;; so render fn knows how to invoke commands
 
-(defn create-book-expr [path date hour]
-  (str "@post('" path "?" (ring.util.codec/form-encode {"date" date "hour" hour}) "')"))
-#_(create-book-expr "/book-appointment" "2022-02-02" 10)
+(declare next-week prev-week
+         book-appointment unbook-appointment)
+
+;; ── app ───────────────────────────────────────────────────────────────────
 
 (defn render-day [_state day]
   [:div {:id (str "date-" day)}
    [:strong (str (name (date->keyword day)))]
    [:span " (" day ")"]
    (for [hour (mapcat #(range (:start %) (:end %)) (availability (date->keyword day)))
-         :let [status (cond (free? availability day hour) :free
+         :let [params {"day" day "hour"  hour}
+               status (cond (free? availability day hour) :free
 
                             #_#_
                             (= (get-in @impulse/state [:appointments day hour]) (email req))
@@ -162,14 +165,12 @@
       [:input {:type "checkbox"
                :checked (= status :mine)
                :data-on:change
-               (create-book-expr
-                (if (= status :free) "/book-appointment" "/unbook-appointment")
-                day hour)}]
+               (torque/invoke (if (= status :free) #'book-appointment #'unbook-appointment) params)}]
       (str hour ":00")
       [:small " (" status " "
-       [:button {:data-on:click (create-book-expr "/book-appointment" day hour)} "bk"]
+       [:button {:data-on:click (torque/invoke #'book-appointment params)} "bk"]
        " "
-       [:button {:data-on:click (create-book-expr "/unbook-appointment" day hour)} "ubk"]
+       [:button {:data-on:click (torque/invoke #'unbook-appointment params)} "ubk"]
        ")"]])])
 
 (comment
@@ -206,7 +207,7 @@
   (let [user (:session/login state)
         username (:user/username user)]
     [:main#app
-     [:strong "guten morgen."]
+     [:strong "guten morgen...."]
      [:p (if username
            [:span (str username " ") [:a {:href garden-id/logout-uri} "(logout)"]]
            [:a {:href garden-id/login-uri} "login"])]

@@ -1,6 +1,7 @@
 (ns torque
   (:require
-   [clojure.string :as str])
+   [clojure.string :as str]
+   [ring.util.codec])
   (:import
    [java.util.zip GZIPOutputStream]
    [java.io ByteArrayOutputStream]
@@ -47,26 +48,25 @@
       :else
       {:headers {} :encode (fn [^String s] (.getBytes s "UTF-8"))})))
 
+;; ── commands ──────────────────────────────────────────────────────────────
+
+(defn invoke
+  "Create a Datastar expression to invoke the given command
+
+  Invoke the #'increase command on click:
+
+      {:data-on:click (invoke #'increase)}
+
+  Invoke the #'plus command with parameter delta=5:
+
+      {:data-on:click (invoke #'plus {\"delta\" 5})}"
+  ([command-var]
+   (str "@post('" (-> command-var meta :command/uri) "')"))
+  ([command-var params]
+   (str "@post('" (-> command-var meta :command/uri)
+        "?" (ring.util.codec/form-encode params) "')")))
+
 ;; ── draft ─────────────────────────────────────────────────────────────────
 
 (comment
-  ;; Torque needs the system atom.
-  torque/!system
-  :torque.conn/conn
-  :torque.conn/encoder
-  :torque/connections)
-
-(comment
-  ;; How do we want to construct commands?
-
-  (defn create-book-expr [path day hour]
-    (str "@post('" path "?"
-         (ring.util.codec/form-encode {:day day :hour hour})
-         "')"))
-  [:button {:data-on:click (create-book-expr "/book-appointment" day hour)} "bk"]
-  ;; introduces the need to write helpers.
-
-  ;; how about
-  [:button (cmd :on/click :commands/book-appointment {"day" day "hour" hour}) "bk"]
-  ;; ?
   )
