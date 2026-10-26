@@ -5,6 +5,7 @@
    [datomic.client.api :as d]
    [hiccup2.core :as h]
    [nextjournal.garden-id :as garden-id]
+   [nextjournal.garden-email :as garden-email]
    [org.httpkit.server :as httpkit]
    [ring.middleware.session]
    [ring.util.codec]
@@ -17,6 +18,8 @@
                             {:start 12 :end 15}]
                    :wednesday [{:start 8 :end 10}
                                {:start 12 :end 14}]})
+
+(def owner-email (or (System/getenv "GARDEN_OWNER_EMAIL") "my-email@example.com"))
 
 ;; ── date stuff ────────────────────────────────────────────────────────────
 
@@ -304,10 +307,16 @@
 (defn book-appointment
   {:command/uri "/book-appointment"}
   [state {:strs [date hour]}]
-  [[:datomic/transact [{:appointment/booked-by (select-keys (:session/login state) [:user/uuid])
-                        :appointment/date date
-                        :appointment/hour (parse-long hour)
-                        :appointment/id (str (random-uuid))}]]])
+  (let [login (:session/login state)]
+    [[:datomic/transact [{:appointment/booked-by (select-keys login [:user/uuid])
+                          :appointment/date date
+                          :appointment/hour (parse-long hour)
+                          :appointment/id (str (random-uuid))}]]
+     [:garden-email/send {:to {:email owner-email}
+                          :subject (format "%s (%s) booked appointment at %s %s:00"
+                                           (:user/name login) (:user/email login) date hour)}]
+     [:garden-email/send {:to {:email (:user/email login)}
+                          :subject (format "You booked an appointment at %s %s:00" date hour)}]]))
 
 (defn unbook-appointment
   {:command/uri "/unbook-appointment"}
@@ -355,10 +364,16 @@
 (defn transact [system args]
   (d/transact (:datomic/conn system) {:tx-data args}))
 
-(def effect-handlers {:datomic/transact #'transact})
+(defn garden-email-send [_ args]
+  (garden-email/send-email! args))
+
+(def effect-handlers
+  {:datomic/transact #'transact
+   :garden-email/send #'garden-email-send})
 
 (defn effectuate! [effects]
-  (doseq [[kind args] effects]
+  (doseq [[kind args :as effect] effects
+          :when effect]
     (if-let [handler (get effect-handlers kind)]
       (try
         (handler @!system args)
@@ -433,6 +448,7 @@
 (defonce wrapped-app ; defonce prevents eval-bffer from logging out everyone
   (-> #'app
       garden-id/wrap-auth
+      garden-email/wrap-with-email
       ring.middleware.session/wrap-session))
 
 ;; ── lifecycle ─────────────────────────────────────────────────────────────
