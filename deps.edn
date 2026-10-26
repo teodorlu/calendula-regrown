@@ -10,7 +10,7 @@
         com.aayushatharva.brotli4j/native-linux-x86_64 {:mvn/version "1.20.0"}
 
         io.github.nextjournal/garden-id {:git/sha "7d19e5400b9ac9082e444f2c0e96d9b5e616a483"}
-        metosin/reitit {:mvn/version "0.11.0"} ; Reitit 0.7.2 (garden-email's version) doesn't work on clojure 1.13.0-alpha9
+        metosin/reitit {:mvn/version "0.8.0"} ; Reitit 0.7.2 (garden-email's version) doesn't work on clojure 1.13.0-alpha9
         io.github.nextjournal/garden-email {:git/sha "e312764cfaa31e8e47f5f2c0207dcbed67873187"}
 
         com.datomic/local {:mvn/version "1.0.301"}}
