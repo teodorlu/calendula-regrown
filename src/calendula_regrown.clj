@@ -435,6 +435,10 @@
                   [:html
                    head
                    [:body {:data-init "@get('/stream')"}
+                    (when dev?
+                      [:section.container
+                       [:nav [:ul [:li [:a {:href garden-email/outbox-url} "sent emails"]]]]
+                       [:hr]])
                     ((get routes [request-method uri])
                      (create-state req))]]))}
 
