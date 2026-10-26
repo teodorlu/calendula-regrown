@@ -371,11 +371,17 @@
   {:datomic/transact #'transact
    :garden-email/send #'garden-email-send})
 
-(defn effectuate! [effects]
+(defonce ^{:doc "Print an effect's data before effectuating"} print-effect? #{})
+#_(def print-effect? #{:garden-email/send})
+
+(defn effectuate! "Effectuate effects sequentially. Halt if one fails."
+  [effects]
   (doseq [[kind args :as effect] effects
           :when effect]
     (if-let [handler (get effect-handlers kind)]
       (try
+        (when (print-effect? kind)
+          (prn effect))
         (handler @!system args)
         (catch Exception e
           (report-exception! :effectuation e)))
