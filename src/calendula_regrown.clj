@@ -161,11 +161,11 @@
 (defn find-appointment [state date hour]
   (ffirst
    (d/q '[:find (pull ?a [* {:appointment/booked-by [*]}])
-         :in $ ?date ?hour
-         :where
-         [?a :appointment/date ?date]
-         [?a :appointment/hour ?hour]]
-       (:datomic/db state) date hour)))
+          :in $ ?date ?hour
+          :where
+          [?a :appointment/date ?date]
+          [?a :appointment/hour ?hour]]
+        (:datomic/db state) date hour)))
 #_(find-appointment state "2026-10-21" 8)
 
 (defn free? [state availability date hour]
