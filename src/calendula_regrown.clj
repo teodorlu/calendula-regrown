@@ -51,7 +51,7 @@
 ;; ── system ────────────────────────────────────────────────────────────────
 
 (def dev?
-  (str/starts-with? (System/getenv "GARDEN_URL") "http://localhost"))
+  (nil? (System/getenv "GARDEN_TOKEN")))
 
 (defn print-exception [{:exception/keys [origin data message _object]}]
   (println (str "Exception at: " origin
