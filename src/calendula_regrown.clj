@@ -71,7 +71,6 @@
          :exception/report-fn #'print-exception}))
 
 (comment
-  (swap! !system dissoc :exception/reporter)
   (swap! !system assoc :exception/report-fn #'print-exception)
   ,)
 
