@@ -201,6 +201,9 @@
 
 (comment
   (def state (create-state @!last-req))
+  (d/q '[:find (pull ?a [* {:appointment/booked-by [*]}])
+         :where [?a :appointment/id]]
+       (:datomic/db state))
 
   )
 
