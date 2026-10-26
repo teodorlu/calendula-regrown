@@ -193,8 +193,10 @@
                :checked (= status :mine)
                :data-on:change
                (if (= status :free)
-                 (invoke #'book-appointment {"date" day "hour"  hour})
-                 (invoke #'unbook-appointment {"appointment" (:appointment/id appointment)}))}]
+                 (invoke #'book-appointment {"date" day "hour" hour})
+                 (invoke #'unbook-appointment {"appointment" (:appointment/id appointment)
+                                               "date" day
+                                               "hour" hour}))}]
       (str hour ":00")])])
 
 (comment
@@ -320,9 +322,15 @@
 
 (defn unbook-appointment
   {:command/uri "/unbook-appointment"}
-  [_ {:strs [appointment]}]
-  ;; XXX verify that you're unbooking your own appointment
-  [[:datomic/transact [[:db/retractEntity [:appointment/id appointment]]]]])
+  [state {:strs [appointment date hour]}]
+  ;; XXX verify that the logged in user had the booking
+  (let [login (:session/login state)]
+    [[:datomic/transact [[:db/retractEntity [:appointment/id appointment]]]]
+     [:garden-email/send {:to {:email owner-email}
+                          :subject (format "%s (%s) has canceled their appointment at %s %s:00"
+                                           (:user/name login) (:user/email login) date hour)}]
+     [:garden-email/send {:to {:email (:user/email login)}
+                               :subject (format "You cancelled an appointment at %s %s:00" date hour)}]]))
 
 (comment
   (def state (create-state @!last-req))
