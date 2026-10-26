@@ -232,8 +232,7 @@
 (defn index [state]
   (let [user (:session/login state)
         username (:user/username user)]
-    [:main#app
-     [:strong "guten morgen."]
+    [:main#app.container
      [:p (if username
            [:span (str username " ") [:a {:href garden-id/logout-uri} "(logout)"]]
            [:a {:href garden-id/login-uri} "login"])]
@@ -426,7 +425,8 @@
   [:head
    [:meta {:charset "UTF-8"}]
    [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
-   [:script {:type "module" :src "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"}]])
+   [:script {:type "module" :src "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"}]
+   [:link {:rel "stylesheet" :href "https://cdn.jsdelivr.net/npm/@picocss/pico@2.0.6/css/pico.min.css"}]])
 
 (defonce !last-req (atom nil))
 (comment @!last-req)
