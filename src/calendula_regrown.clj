@@ -426,6 +426,7 @@
 (def head
   [:head
    [:meta {:charset "UTF-8"}]
+   [:title "Calendula, regrown"]
    [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
    [:script {:type "module" :src "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"}]
    [:link {:rel "stylesheet" :href "https://cdn.jsdelivr.net/npm/@picocss/pico@2.0.6/css/pico.min.css"}]])
