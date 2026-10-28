@@ -78,6 +78,22 @@
                                        (into {}))})))
     command-map))
 
+;; ── server ────────────────────────────────────────────────────────────────
+
+(require '[org.httpkit.server :as httpkit])
+
+(defonce !server (atom nil))
+
+(defn halt-server! []
+  (swap! !server #(when % (httpkit/server-stop! %))))
+
+(defn serve! [handler opts]
+  (halt-server!)
+  (reset! !server (httpkit/run-server handler
+                                      (merge {:port 7777}
+                                             opts
+                                             {:legacy-return-value? false}))))
+
 ;; ── draft ─────────────────────────────────────────────────────────────────
 
 (comment

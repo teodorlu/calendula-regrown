@@ -474,17 +474,11 @@
 
 ;; ── lifecycle ─────────────────────────────────────────────────────────────
 
-(defn halt! []
-  (swap! !system update :httpkit/server #(when % (httpkit/server-stop! %))))
-
 (defn serve! [opts]
-  (halt!)
-  (swap! !system assoc :httpkit/server
-         (httpkit/run-server #'wrapped-app (assoc opts :legacy-return-value? false)))
-  (swap! !system assoc :datomic/conn (connect-datomic)))
+  (swap! !system assoc :datomic/conn (connect-datomic))
+  (torque/serve! #'wrapped-app opts))
 
 ;; ── dev ───────────────────────────────────────────────────────────────────
-
 
 ;; Refresh connected clients on buffer eval
 (when dev? (re-render!))
