@@ -16,4 +16,4 @@
         com.datomic/local {:mvn/version "1.0.301"}}
 
  :aliases
- {:nextjournal/garden {:exec-fn calendula-regrown/serve!}}}
+ {:nextjournal/garden {:exec-fn calendula-regrown-datomic/serve!}}}
