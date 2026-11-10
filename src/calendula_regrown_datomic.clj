@@ -56,7 +56,7 @@
 (def dev?
   (nil? (System/getenv "GARDEN_TOKEN")))
 
-(defn print-exception [{:exception/keys [origin data message _object]}]
+(defn print-exception [{:exception/keys [origin data message]}]
   (println (str "Exception at: " origin
                 "\n  message: " message
                 "\n  data:"
