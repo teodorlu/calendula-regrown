@@ -1,4 +1,4 @@
-(ns calendula-regrown-datomic
+(ns cauliflower-datomic
   (:require
    [clojure.set :as set]
    [clojure.string :as str]
