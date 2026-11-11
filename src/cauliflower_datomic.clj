@@ -145,8 +145,8 @@
 #_(swap! !system assoc :datomic/conn (connect-datomic))
 
 (defn connect-datomic []
-  (d/create-database datomic-client {:db-name "calendula-regrown"})
-  (doto (d/connect datomic-client {:db-name "calendula-regrown"})
+  (d/create-database datomic-client {:db-name "cauliflower-datomic"})
+  (doto (d/connect datomic-client {:db-name "cauliflower-datomic"})
     (d/transact {:tx-data schema})))
 
 ;; ── command declaration for render fns  ───────────────────────────────────
@@ -249,8 +249,8 @@
                  0)
              ) " appointments. "
         [:button {:data-on:click (invoke #'clear-database)} "Clear all"]])
-     [:p "Source: " [:a {:href "https://github.com/teodorlu/calendula-regrown"}
-                     "github.com/teodorlu/calendula-regrown"]]]))
+     [:p "Source: " [:a {:href "https://github.com/teodorlu/cauliflower-datomic"}
+                     "github.com/teodorlu/cauliflower-datomic"]]]))
 
 (def routes
   {[:get "/"] #'index})
@@ -426,7 +426,7 @@
 (def head
   [:head
    [:meta {:charset "UTF-8"}]
-   [:title "Calendula, regrown"]
+   [:title "Cauliflower/Datomic"]
    [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
    [:script {:type "module" :src "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"}]
    [:link {:rel "stylesheet" :href "https://cdn.jsdelivr.net/npm/@picocss/pico@2.0.6/css/pico.min.css"}]])

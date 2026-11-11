@@ -1,2 +1,1 @@
-{:project "calendula-regrown"
- :deploy-strategy :restart}
+{:project "cauliflower-datomic", :deploy-strategy :restart}
