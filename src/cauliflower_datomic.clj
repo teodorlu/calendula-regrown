@@ -394,7 +394,7 @@
         (handler @!system args)
         (catch Exception e
           (report-exception! :effectuation e)))
-      (throw (ex-info "Unsupported effect kind" {:kind kind})))))
+      (throw (ex-info (str "Unsupported effect kind: " kind) {:kind kind})))))
 
 (defn dispatch-command! [state req command-handler]
   (httpkit/as-channel
