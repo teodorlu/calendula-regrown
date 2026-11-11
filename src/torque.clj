@@ -93,8 +93,3 @@
                                       (merge {:port 7777}
                                              opts
                                              {:legacy-return-value? false}))))
-
-;; ── draft ─────────────────────────────────────────────────────────────────
-
-(comment
-  )
