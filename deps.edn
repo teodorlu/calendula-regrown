@@ -16,4 +16,5 @@
         com.datomic/local {:mvn/version "1.0.301"}}
 
  :aliases
- {:nextjournal/garden {:exec-fn cauliflower-datomic/serve!}}}
+ {:nextjournal/garden {:exec-fn cauliflower-datomic/serve!
+                       :jvm-opts ["--enable-native-access=ALL-UNNAMED"]}}}
